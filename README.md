@@ -2,6 +2,8 @@
 
 This repo demonstrates a simple active/passive failover setup using Docker Compose and `keepalived`.
 
+![demo.png](demo.png)
+
 ## What it does
 
 - Runs two containers: one `MASTER`, one `BACKUP`
@@ -75,6 +77,52 @@ Both master and backup files define one VRRP group named `VI_1`.
 2. The backup watches for VRRP advertisements from the master.
 3. If the master stops responding, the backup takes over the VIP.
 4. When the master returns, its higher priority lets it reclaim the VIP.
+
+## How to run
+
+**Prerequisites:** Docker and Docker Compose installed.
+
+1. Start the containers:
+
+```bash
+docker compose up -d
+```
+
+2. Test the VIP by hitting it from a temporary container:
+
+```bash
+docker run --rm --network kv_net alpine wget -qO- http://172.20.0.100
+```
+
+You should see: `I am MASTER`
+
+3. Stop the master to simulate failure:
+
+```bash
+docker stop keepalived-master
+```
+
+4. Hit the VIP again:
+
+```bash
+docker run --rm --network kv_net alpine wget -qO- http://172.20.0.100
+```
+
+You should now see: `I am BACKUP` (failover worked!)
+
+5. Restart the master:
+
+```bash
+docker start keepalived-master
+```
+
+6. After a few seconds, hit the VIP again:
+
+```bash
+docker run --rm --network kv_net alpine wget -qO- http://172.20.0.100
+```
+
+You should see: `I am MASTER` (master reclaimed the VIP)
 
 ## Note
 
