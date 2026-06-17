@@ -1,0 +1,37 @@
+version: '3.8'
+
+networks:
+  kv_net:
+    name: kv_net
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+services:
+  lb-master:
+    image: python:3.11-alpine
+    container_name: keepalived-master
+    # Install keepalived first. Once done, start keepalived in the background and run the server.
+    command: sh -c "apk add --no-cache keepalived && echo 'I am MASTER' > index.html && keepalived -n -l & python3 -m http.server 80"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./keepalived-master.conf:/etc/keepalived/keepalived.conf:ro
+    networks:
+      kv_net:
+        ipv4_address: 172.20.0.11
+
+  lb-backup:
+    image: python:3.11-alpine
+    container_name: keepalived-backup
+    command: sh -c "apk add --no-cache keepalived && echo 'I am BACKUP' > index.html && keepalived -n -l & python3 -m http.server 80"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    volumes:
+      - ./keepalived-backup.conf:/etc/keepalived/keepalived.conf:ro
+    networks:
+      kv_net:
+        ipv4_address: 172.20.0.12
